@@ -7,7 +7,6 @@ import { Loader2 } from "lucide-react";
 export function WalletButton() {
   const { connected, address, isConnecting, connectWallet, disconnect } = useMinaWallet();
 
-  // If the user is connected, show their truncated address + disconnect
   if (connected) {
     return (
       <div className="flex items-center space-x-2">
@@ -25,7 +24,6 @@ export function WalletButton() {
     );
   }
 
-  // Otherwise, show the connect button
   return (
     <Button
       onClick={connectWallet}
@@ -42,4 +40,4 @@ export function WalletButton() {
       )}
     </Button>
   );
-}
+} 

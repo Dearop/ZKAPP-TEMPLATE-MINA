@@ -1,42 +1,66 @@
-"use client"
+"use client"; // required if you are using Next.js App Router
 
-import { useState, useEffect, useCallback } from "react"
+import { useEffect, useState } from "react";
+
+// Key used in localStorage
+const LOCAL_STORAGE_KEY = "MINA";
 
 export function useMinaWallet() {
-  const [wallet, setWallet] = useState<any>(null)
-  const [connected, setConnected] = useState(false)
-  const [address, setAddress] = useState("")
-  const [isConnecting, setIsConnecting] = useState(false)
+  const [connected, setConnected] = useState(false);
+  const [address, setAddress] = useState<string | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
 
+  // On mount, fetch any stored wallet address from localStorage
   useEffect(() => {
-    const checkWallet = async () => {
-      if (typeof window !== "undefined" && "mina" in window) {
-        setWallet((window as any).mina)
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (stored) {
+        setAddress(JSON.parse(stored));
+        setConnected(true);
       }
     }
-    checkWallet()
-  }, [])
+  }, []);
 
-  const connect = useCallback(async () => {
-    if (wallet) {
-      try {
-        setIsConnecting(true)
-        const accounts = await wallet.requestAccounts()
-        setAddress(accounts[0])
-        setConnected(true)
-      } catch (error) {
-        console.error("Failed to connect wallet:", error)
-      } finally {
-        setIsConnecting(false)
-      }
+  // ---- connectWallet function ----
+  async function connect() {
+    // If the user doesn't have Auro Wallet
+    if (!window.mina) {
+      alert("Mina wallet extension not found. Please install Auro Wallet.");
+      return;
     }
-  }, [wallet])
+    try {
+      setIsConnecting(true);
+      const accounts = await window.mina.requestAccounts();
+      const rawAddress = accounts[0];
+      // Truncate address for user display
+      const displayAddress = `${rawAddress.slice(0, 6)}...${rawAddress.slice(-4)}`;
 
-  const disconnect = useCallback(() => {
-    setAddress("")
-    setConnected(false)
-  }, [])
+      // Persist in localStorage
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(displayAddress));
+      
+      // Update React state
+      setAddress(displayAddress);
+      setConnected(true);
+    } catch (error) {
+      console.error("Failed to connect wallet:", error);
+      throw error; // Re-throw to allow component to handle error
+    } finally {
+      setIsConnecting(false);
+    }
+  }
 
-  return { wallet, connected, address, connect, disconnect, isConnecting }
+  // ---- disconnect function ----
+  function disconnect() {
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    setAddress(null);
+    setConnected(false);
+  }
+
+  return {
+    connected,
+    address,
+    isConnecting,
+    connect,
+    disconnect,
+  };
 }
-
